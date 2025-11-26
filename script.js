@@ -1,35 +1,30 @@
-async function getTracks() {
-    try {
-        const res = await fetch("/.netlify/functions/playlist");
-        if (!res.ok) throw new Error("Proxy error " + res.status);
+let tracks = [];
 
-        return await res.json();
+window.addEventListener("message", (event) => {
+    if (!event.data || !event.data.playlist) return;
 
-    } catch (err) {
-        alert("Error: " + err.message);
-        console.error(err);
-        return null;
+    tracks = event.data.playlist.songs;
+
+    console.log("✅ Playlist loaded:", tracks.length, "tracks");
+});
+
+document.getElementById("shuffleBtn").addEventListener("click", () => {
+    if (!tracks.length) {
+        alert("Playlist not loaded yet, try again.");
+        return;
     }
-}
-
-document.getElementById("shuffle").addEventListener("click", async () => {
-    const tracks = await getTracks();
-    if (!tracks) return;
 
     const track = tracks[Math.floor(Math.random() * tracks.length)];
-    const attrs = track.attributes;
 
-    const cover = attrs.artwork.url
+    const artwork = track.artwork.url
         .replace("{w}", "600")
         .replace("{h}", "600");
 
-    document.getElementById("player").style.display = "block";
+    document.getElementById("cover").src = artwork;
+    document.getElementById("title").textContent = track.title;
 
-    document.getElementById("title").textContent = attrs.name;
-    document.getElementById("artist").textContent = attrs.artistName;
-    document.getElementById("cover").src = cover;
-    document.getElementById("bg").style.backgroundImage = `url(${cover})`;
+    document.getElementById("blurBg").style.backgroundImage = `url(${artwork})`;
 
-    const percent = Math.random() * 100;
-    document.getElementById("bar").style.width = percent + "%";
+    const rand = Math.random() * 100;
+    document.getElementById("progressFill").style.width = rand + "%";
 });
