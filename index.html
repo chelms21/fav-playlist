@@ -1,181 +1,259 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Random Apple Music Song</title>
-
+<meta charset="UTF-8" />
+<title>Random Apple Music Song (no token)</title>
 <style>
-body {
-    background: #121212;
-    color: white;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    overflow: hidden;
-}
+  :root { --accent: #ff2d55; }
+  html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial;}
+  body{
+    background:#0f0f10;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    overflow:hidden;
+  }
 
-.bg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-size: cover;
-    background-position: center;
-    filter: blur(35px) brightness(0.3);
-    transform: scale(1.2);
-    transition: background-image 0.4s ease-out;
-}
+  .bg {
+    position:fixed; inset:0;
+    background-size:cover;
+    background-position:center;
+    filter:blur(36px) brightness(.32);
+    transform:scale(1.15);
+    transition:background-image .45s ease-out;
+  }
 
-.player {
-    position: relative;
-    background: rgba(28, 28, 30, 0.65);
-    backdrop-filter: blur(20px);
-    width: 360px;
-    border-radius: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    padding: 20px;
-    text-align: center;
-}
+  .player{
+    position:relative;
+    width:360px;
+    padding:20px;
+    border-radius:18px;
+    background:rgba(28,28,30,0.6);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.55);
+    z-index:2;
+  }
 
-.album-art {
-    width: 100%;
-    border-radius: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-}
+  .album-art{
+    width:100%;
+    border-radius:12px;
+    display:block;
+    margin-bottom:14px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  }
 
-.song-title {
-    font-size: 18px;
-    font-weight: 600;
-}
+  .song-title{ font-size:18px; font-weight:600; margin-bottom:4px; }
+  .artist{ font-size:13px; color:rgba(255,255,255,0.78); margin-bottom:12px; }
 
-.artist {
-    font-size: 14px;
-    opacity: 0.7;
-    margin-bottom: 10px;
-}
+  .progress-container {
+    width:100%;
+    height:8px;
+    background:rgba(255,255,255,0.12);
+    border-radius:999px;
+    overflow:hidden;
+    margin:8px 0 6px;
+  }
+  .progress{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,var(--accent), #ff6b88);
+    transition: width .45s cubic-bezier(.2,.9,.2,1);
+  }
+  .time {
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    color:rgba(255,255,255,0.7);
+    margin-bottom:12px;
+  }
 
-.progress-container {
-    width: 100%;
-    height: 6px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 4px;
-    overflow: hidden;
-    margin: 10px 0;
-}
-
-.progress {
-    height: 100%;
-    background: #ff2d55;
-    width: 0%;
-    transition: width 0.5s;
-}
-
-.time {
-    font-size: 12px;
-    opacity: 0.7;
-    display: flex;
-    justify-content: space-between;
-}
-
-button {
-    width: 100%;
-    padding: 12px;
-    background: #ff2d55;
-    border: none;
-    border-radius: 12px;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-}
-button:hover {
-    background: #ff4f72;
-}
+  button {
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:0;
+    background:var(--accent);
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+    box-shadow: 0 6px 18px rgba(255,45,85,0.12);
+  }
+  button:hover{ filter:brightness(1.05) }
+  .small { font-size:12px; color:rgba(255,255,255,0.6); margin-top:10px; text-align:center;}
 </style>
-
 </head>
 <body>
 
 <div class="bg" id="bg"></div>
 
-<div class="player">
-    <img id="cover" class="album-art">
-    <div class="song-title" id="title"></div>
-    <div class="artist" id="artist"></div>
+<div class="player" id="player">
+  <img id="cover" class="album-art" src="" alt="Album art">
+  <div class="song-title" id="title">—</div>
+  <div class="artist" id="artist">—</div>
 
-    <div class="progress-container">
-        <div class="progress" id="progress"></div>
-    </div>
+  <div class="progress-container" aria-hidden="true">
+    <div id="progress" class="progress"></div>
+  </div>
 
-    <div class="time">
-        <span id="current"></span>
-        <span id="total"></span>
-    </div>
+  <div class="time"><span id="current">0:00</span><span id="total">0:00</span></div>
 
-    <button id="randomBtn">Shuffle</button>
+  <button id="randomBtn">Shuffle</button>
+  <div class="small" id="info">Replace the playlistURL variable in the script to your embed link</div>
 </div>
 
 <script>
-const playlistURL =
-    "https://embed.music.apple.com/us/playlist/favorite-songs/pl.u-ovURBX17aZ?ls"; // ← replace
+/*
+  Replace this with any Apple Music embed URL (the "embed.music.apple.com/..." page).
+  Example:
+  https://embed.music.apple.com/us/playlist/workout/pl.1234567890abcdef
+*/
+const playlistURL = "https://embed.music.apple.com/us/playlist/favorite-songs/pl.u-ovURBX17aZ?ls"; // <-- replace
+
+// UTIL: find matching closing bracket for an array starting at idx
+function findMatchingBracket(text, startIdx) {
+  let depth = 0;
+  for (let i = startIdx; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '[') depth++;
+    else if (ch === ']') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+async function fetchEmbedHtml(url) {
+  const res = await fetch(url, { mode: "cors" }); // may require being served from http(s)
+  if (!res.ok) throw new Error("Failed to fetch embed page: " + res.status);
+  return await res.text();
+}
+
+function formatTimeSeconds(secFloat) {
+  const sec = Math.floor(secFloat);
+  const m = Math.floor(sec / 60);
+  const s = (sec % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+async function getTracksFromEmbedHtml(html) {
+  // find first occurrence of `"tracks":[`
+  const marker = '"tracks":[';
+  const idx = html.indexOf(marker);
+  if (idx === -1) {
+    // try a slightly different marker (sometimes keys are single quoted or spaced)
+    const alt = '"tracks" : [';
+    const idx2 = html.indexOf(alt);
+    if (idx2 === -1) throw new Error("No 'tracks' array found in embed HTML.");
+    return getTracksFromEmbedHtml(html.slice(idx2));
+  }
+
+  const startArray = html.indexOf('[', idx + marker.length - 1);
+  if (startArray === -1) throw new Error("Malformed tracks array start.");
+  const endArray = findMatchingBracket(html, startArray);
+  if (endArray === -1) throw new Error("Could not find end of tracks array.");
+
+  const arrayText = html.slice(startArray, endArray + 1);
+
+  // try parse; sometimes the JSON blob includes trailing commas / comments (rare).
+  try {
+    const parsed = JSON.parse(arrayText);
+    if (!Array.isArray(parsed)) throw new Error("Parsed tracks is not an array");
+    return parsed;
+  } catch (e) {
+    // fallback: attempt to sanitize by removing problematic tokens (basic)
+    // remove newlines and repeated commas like ',,'
+    const cleaned = arrayText.replace(/\r?\n/g, ' ').replace(/,(\s*,)+/g, ',').replace(/,(\s*])/, ']');
+    return JSON.parse(cleaned);
+  }
+}
 
 async function getPlaylistTracks() {
-    const res = await fetch(playlistURL);
-    const html = await res.text();
-
-    const jsonMatch = html.match(/"tracks":(\[.*?\])\}/s);
-
-    if (!jsonMatch) {
-        alert("Could not extract playlist data");
-        return [];
-    }
-
-    return JSON.parse(jsonMatch[1]);
+  try {
+    const html = await fetchEmbedHtml(playlistURL);
+    const tracks = await getTracksFromEmbedHtml(html);
+    console.log("extracted", tracks.length, "tracks");
+    return tracks;
+  } catch (err) {
+    console.error(err);
+    alert("Error extracting playlist data: " + err.message + "\nCheck console for details.");
+    return [];
+  }
 }
 
-let tracks = [];
-
-function formatTime(sec) {
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
-}
+let tracksCache = [];
 
 async function loadRandomSong() {
-    if (!tracks.length) {
-        tracks = await getPlaylistTracks();
-    }
+  const coverEl = document.getElementById("cover");
+  const titleEl = document.getElementById("title");
+  const artistEl = document.getElementById("artist");
+  const bgEl = document.getElementById("bg");
+  const progressEl = document.getElementById("progress");
+  const currentEl = document.getElementById("current");
+  const totalEl = document.getElementById("total");
 
-    const song = tracks[Math.floor(Math.random() * tracks.length)];
+  if (!tracksCache.length) {
+    tracksCache = await getPlaylistTracks();
+    if (!tracksCache.length) return;
+  }
 
-    const artwork = song.attributes.artwork.url
-        .replace('{w}', 600)
-        .replace('{h}', 600);
+  // pick random track
+  const song = tracksCache[Math.floor(Math.random() * tracksCache.length)];
+  if (!song || !song.attributes) {
+    alert("Track data missing attributes in parsed JSON. See console.");
+    console.log("song raw", song);
+    return;
+  }
 
-    document.getElementById("cover").src = artwork;
-    document.getElementById("title").textContent = song.attributes.name;
-    document.getElementById("artist").textContent = song.attributes.artistName;
+  const attrs = song.attributes;
 
-    // ✅ blurred background
-    document.getElementById("bg").style.backgroundImage = `url(${artwork})`;
+  // artwork: Apple uses template {w} {h}
+  let artwork = attrs.artwork && attrs.artwork.url ? attrs.artwork.url : null;
+  if (artwork) {
+    artwork = artwork.replace('{w}', 1400).replace('{h}', 1400);
+  } else if (attrs.previews && attrs.previews[0] && attrs.previews[0].url) {
+    artwork = ''; // fallback not ideal
+  }
 
-    // ✅ random progress
-    const duration = song.attributes.durationInMillis / 1000;
-    const randomTime = Math.random() * duration;
+  // set UI
+  coverEl.src = artwork || '';
+  titleEl.textContent = attrs.name || "Unknown";
+  artistEl.textContent = attrs.artistName || (attrs.artist || "Unknown");
 
-    const percent = (randomTime / duration) * 100;
+  if (artwork) {
+    // set blurred bg
+    bgEl.style.backgroundImage = `url(${artwork})`;
+  } else {
+    bgEl.style.backgroundImage = '';
+  }
 
-    document.getElementById("progress").style.width = percent + "%";
-    document.getElementById("current").textContent = formatTime(randomTime);
-    document.getElementById("total").textContent = formatTime(duration);
+  // duration in millis -> seconds
+  const durationSec = (attrs.durationInMillis || attrs.duration || 0) / 1000;
+  if (!durationSec || isNaN(durationSec)) {
+    // if missing, set defaults
+    totalEl.textContent = "0:00";
+    currentEl.textContent = "0:00";
+    progressEl.style.width = "0%";
+    return;
+  }
+
+  // random time inside [0, duration]
+  const randomTimeSec = Math.random() * durationSec;
+
+  // percent
+  const pct = (randomTimeSec / durationSec) * 100;
+  progressEl.style.width = pct + "%";
+
+  // set times
+  currentEl.textContent = formatTimeSeconds(randomTimeSec);
+  totalEl.textContent = formatTimeSeconds(durationSec);
 }
 
+// wire button
 document.getElementById("randomBtn").addEventListener("click", loadRandomSong);
 
+// run once on load (safely)
 loadRandomSong();
 </script>
 
