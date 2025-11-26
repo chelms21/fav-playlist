@@ -88,71 +88,83 @@ button:hover {
 
 <div class="bg" id="bg"></div>
 
-<div class="player">
-    <img id="cover" class="album-art">
-    <div class="song-title" id="title"></div>
-    <div class="artist" id="artist"></div>
+<button id="shuffle">Shuffle</button>
 
-    <div class="progress-container">
-        <div class="progress" id="progress"></div>
+<div id="player" style="display:none;">
+    <div id="bg"></div>
+    <img id="cover" />
+    <div id="info">
+        <h2 id="title"></h2>
+        <h3 id="artist"></h3>
+        <div id="progress">
+            <div id="bar"></div>
+        </div>
     </div>
-
-    <div class="time">
-        <span id="current"></span>
-        <span id="total"></span>
-    </div>
-
-    <button id="randomBtn">Shuffle</button>
 </div>
 
 <script>
-const playlistId = "pl.u-ovURBX17aZ"; // ✅ your playlist
-const widgetURL = `https://widget-web.music.apple.com/widget/playlist/us/${playlistId}`;
+async function getRandomTrack() {
+    try {
+        const playlistUrl = "https://embed.music.apple.com/us/playlist/favorite-songs/pl.u-ovURBX17aZ";
 
-async function getTracks() {
-    const res = await fetch(widgetURL);
-    const data = await res.json();
-    return data.data[0].relationships.tracks.data;
+        const html = await fetch(playlistUrl)
+            .then(r => {
+                if (!r.ok) throw new Error("Failed to load playlist (HTTP " + r.status + ")");
+                return r.text();
+            })
+            .catch(err => { throw new Error("Fetch failed: " + err.message) });
+
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const scriptTag = [...doc.querySelectorAll("script")]
+            .find(s => s.textContent.includes("songId"));
+
+        if (!scriptTag) throw new Error("Could not find track list in embed");
+
+        const jsonMatch = scriptTag.textContent.match(/"tracks":(\[.*?\])/s);
+        if (!jsonMatch) throw new Error("Track data not found in embed");
+
+        let tracks;
+        try {
+            tracks = JSON.parse(jsonMatch[1]);
+        } catch {
+            throw new Error("Failed to parse Apple Music JSON");
+        }
+
+        if (!tracks.length) throw new Error("Playlist contains no playable songs");
+
+        const track = tracks[Math.floor(Math.random() * tracks.length)];
+
+        return {
+            title: track.attributes.name,
+            artist: track.attributes.artistName,
+            cover: track.attributes.artwork.url
+                .replace("{w}", "500")
+                .replace("{h}", "500")
+        };
+
+    } catch (err) {
+        alert("Error: " + err.message);
+        console.error(err);
+        return null;
+    }
 }
 
-function format(sec) {
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60).toString().padStart(2,"0");
-    return `${m}:${s}`;
-}
+document.getElementById("shuffle").addEventListener("click", async () => {
+    const track = await getRandomTrack();
+    if (!track) return;
 
-let tracks = [];
+    document.getElementById("player").style.display = "block";
+    document.getElementById("title").textContent = track.title;
+    document.getElementById("artist").textContent = track.artist;
+    document.getElementById("cover").src = track.cover;
 
-async function loadRandomSong() {
-    if (!tracks.length) tracks = await getTracks();
+    // background blur
+    document.getElementById("bg").style.backgroundImage = `url(${track.cover})`;
 
-    const song = tracks[Math.floor(Math.random() * tracks.length)];
-    const attr = song.attributes;
-
-    const artwork = attr.artwork.url
-        .replace("{w}", 800)
-        .replace("{h}", 800);
-
-    document.getElementById("cover").src = artwork;
-    document.getElementById("title").textContent = attr.name;
-    document.getElementById("artist").textContent = attr.artistName;
-
-    document.getElementById("bg").style.backgroundImage = `url(${artwork})`;
-
-    const duration = attr.durationInMillis / 1000;
-    const random = Math.random() * duration;
-
-    document.getElementById("progress").style.width =
-        (random / duration) * 100 + "%";
-
-    document.getElementById("current").textContent = format(random);
-    document.getElementById("total").textContent = format(duration);
-}
-
-document.getElementById("randomBtn").addEventListener("click", loadRandomSong);
-
-loadRandomSong();
+    // random progress bar
+    const percent = Math.random() * 100;
+    document.getElementById("bar").style.width = percent + "%";
+});
 </script>
-
 </body>
 </html>
