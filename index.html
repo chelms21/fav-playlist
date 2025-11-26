@@ -1,23 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Apple Music Random Song</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<button id="shuffle">Shuffle</button>
+<div class="player">
+    <div class="blur-bg" id="blurBg"></div>
 
-<div id="player">
-    <div id="bg"></div>
-    <img id="cover">
-    <h2 id="title"></h2>
-    <h3 id="artist"></h3>
+    <img id="cover" class="cover">
 
-    <div id="progress">
-        <div id="bar"></div>
+    <div class="info">
+        <h2 id="title">Click Shuffle</h2>
     </div>
+
+    <div class="progress">
+        <div id="progressFill"></div>
+    </div>
+
+    <button id="shuffleBtn">Shuffle</button>
 </div>
+
+<!-- Hidden Apple music embed -->
+<iframe id="appleEmbed"
+    src="https://embed.music.apple.com/us/playlist/favorite-songs/pl.u-ovURBX17aZ"
+    style="width:0;height:0;border:0;visibility:hidden;"></iframe>
 
 <script src="script.js"></script>
 </body>
