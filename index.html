@@ -1,66 +1,51 @@
 <button id="shuffle">Shuffle</button>
 
-<div id="player" style="
-    width:300px;
-    margin-top:20px;
-    padding:20px;
-    border-radius:20px;
-    overflow:hidden;
-    position:relative;
-    font-family:sans-serif;
-    display:none;
-    ">
-    
-    <div id="bg" style="
-        position:absolute;
-        inset:0;
-        background-size:cover;
-        background-position:center;
-        filter:blur(25px) brightness(0.5);
-        z-index:-1;
-    "></div>
-
-    <img id="cover" style="width:100%; border-radius:15px;">
-
-    <h2 id="title" style="color:white;margin:10px 0 0;"></h2>
-    <h3 id="artist" style="color:white;margin:0 0 10px;"></h3>
-
-    <div id="progress" style="
-        width:100%;
-        height:6px;
-        background:rgba(255,255,255,0.3);
-        border-radius:3px;
-        overflow:hidden;
-    ">
-        <div id="bar" style="
-            height:100%;
-            background:white;
-            width:0%;
-        "></div>
-    </div>
+<div id="player" style="display:none;">
+    <div id="bg"></div>
+    <img id="cover">
+    <h2 id="title"></h2>
+    <h3 id="artist"></h3>
+    <div id="progress"><div id="bar"></div></div>
 </div>
 
 <script>
+const playlistUrl =
+    "https://embed.music.apple.com/us/playlist/favorite-songs/pl.u-ovURBX17aZ";
+
+async function getAuthToken() {
+    const html = await fetch(playlistUrl).then(r => r.text());
+
+    const tokenMatch = html.match(/"token"\s*:\s*"([^"]+)"/);
+
+    if (!tokenMatch) throw new Error("Failed to extract Apple auth token");
+
+    return tokenMatch[1];
+}
+
 async function getTracks() {
     try {
+        const token = await getAuthToken();
+
         const playlistId = "pl.u-ovURBX17aZ";
 
-        const url = `https://itunes.apple.com/lookup?id=${playlistId}&entity=song`;
+        const apiUrl =
+            `https://amp-api.music.apple.com/v1/catalog/us/playlists/${playlistId}`;
 
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Apple API error " + res.status);
+        const res = await fetch(apiUrl, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        if (!res.ok) throw new Error("API request failed " + res.status);
 
         const data = await res.json();
 
-        if (!data.results || data.results.length < 2)
-            throw new Error("Playlist returned no songs");
+        return data.data[0].relationships.tracks.data;
 
-        // first item is playlist metadata, remove it
-        return data.results.slice(1);
-
-    } catch (e) {
-        alert("Error loading playlist:\n" + e.message);
-        console.error(e);
+    } catch (err) {
+        alert("Error: " + err.message);
+        console.error(err);
         return null;
     }
 }
@@ -70,19 +55,19 @@ document.getElementById("shuffle").addEventListener("click", async () => {
     if (!tracks) return;
 
     const track = tracks[Math.floor(Math.random() * tracks.length)];
+    const attrs = track.attributes;
 
-    const title = track.trackName;
-    const artist = track.artistName;
-    const cover = track.artworkUrl100.replace("100x100", "600x600");
+    const cover = attrs.artwork.url
+        .replace("{w}", "600")
+        .replace("{h}", "600");
 
     document.getElementById("player").style.display = "block";
-    document.getElementById("title").textContent = title;
-    document.getElementById("artist").textContent = artist;
+    document.getElementById("title").textContent = attrs.name;
+    document.getElementById("artist").textContent = attrs.artistName;
     document.getElementById("cover").src = cover;
 
     document.getElementById("bg").style.backgroundImage = `url(${cover})`;
 
-    // random progress fill
     const percent = Math.random() * 100;
     document.getElementById("bar").style.width = percent + "%";
 });
