@@ -1,74 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Apple Music Random Song</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
 <button id="shuffle">Shuffle</button>
 
-<div id="player" style="display:none;">
+<div id="player">
     <div id="bg"></div>
     <img id="cover">
     <h2 id="title"></h2>
     <h3 id="artist"></h3>
-    <div id="progress"><div id="bar"></div></div>
+
+    <div id="progress">
+        <div id="bar"></div>
+    </div>
 </div>
 
-<script>
-const playlistUrl =
-    "https://embed.music.apple.com/us/playlist/favorite-songs/pl.u-ovURBX17aZ";
-
-async function getAuthToken() {
-    const html = await fetch(playlistUrl).then(r => r.text());
-
-    const tokenMatch = html.match(/"token"\s*:\s*"([^"]+)"/);
-
-    if (!tokenMatch) throw new Error("Failed to extract Apple auth token");
-
-    return tokenMatch[1];
-}
-
-async function getTracks() {
-    try {
-        const token = await getAuthToken();
-
-        const playlistId = "pl.u-ovURBX17aZ";
-
-        const apiUrl =
-            `https://amp-api.music.apple.com/v1/catalog/us/playlists/${playlistId}`;
-
-        const res = await fetch(apiUrl, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-
-        if (!res.ok) throw new Error("API request failed " + res.status);
-
-        const data = await res.json();
-
-        return data.data[0].relationships.tracks.data;
-
-    } catch (err) {
-        alert("Error: " + err.message);
-        console.error(err);
-        return null;
-    }
-}
-
-document.getElementById("shuffle").addEventListener("click", async () => {
-    const tracks = await getTracks();
-    if (!tracks) return;
-
-    const track = tracks[Math.floor(Math.random() * tracks.length)];
-    const attrs = track.attributes;
-
-    const cover = attrs.artwork.url
-        .replace("{w}", "600")
-        .replace("{h}", "600");
-
-    document.getElementById("player").style.display = "block";
-    document.getElementById("title").textContent = attrs.name;
-    document.getElementById("artist").textContent = attrs.artistName;
-    document.getElementById("cover").src = cover;
-
-    document.getElementById("bg").style.backgroundImage = `url(${cover})`;
-
-    const percent = Math.random() * 100;
-    document.getElementById("bar").style.width = percent + "%";
-});
-</script>
+<script src="script.js"></script>
+</body>
+</html>
